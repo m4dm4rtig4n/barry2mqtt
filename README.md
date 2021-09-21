@@ -1,8 +1,12 @@
 # barry2mqtt
 
+## Links
+
 Github Repository : https://github.com/m4dm4rtig4n/barry2mqtt
 
 Docker Hub Images : https://hub.docker.com/r/m4dm4rtig4n/barry2mqtt
+
+## Informations
 
 barry2mqtt use Barry Energy API to send data in your MQTT Broker.
 
@@ -14,7 +18,7 @@ To generate ACCESS_TOKEN :
 - Give token name
 - Generate
 
-Usage :
+## Usage :
 
 ```
 ACCESS_TOKEN=""
