@@ -35,9 +35,7 @@ if "CYCLE" in os.environ:
     cycle = int(os.environ['CYCLE'])
 else:
     cycle: 3600
-
-cycle = int(os.environ['CYCLE'])
-
+    
 # Fix min cycle
 if cycle < 3600:
     cycle = 3600
