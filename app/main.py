@@ -17,8 +17,8 @@ password = os.environ['MQTT_PASSWORD']
 cycle = int(os.environ['CYCLE'])
 
 # Fix min cycle
-if cycle < 10:
-    cycle = 10
+if cycle < 1600:
+    cycle = 1600
 
 headers = {
     'accept': 'application/json',
@@ -116,6 +116,26 @@ def getAggregatedConsumption(dateBegin=None, dateEnded=None):
     }
     return requests.request("POST", url=f"{endpoint}#{tag}", headers=headers, data=json.dumps(data)).json()
 
+def getTotalPrice(pdl, dateBegin=None, dateEnded=None):
+    tag = "get-total-kWh-price"
+    print(f"=> {tag}")
+    if dateBegin == None or dateEnded == None:
+        my_date = datetime.now()
+        dateBegin = datetime.now() + timedelta(weeks=-1)
+        dateBegin = dateBegin.strftime('%Y-%m-%dT%H:00:00Z')
+        dateEnded = my_date.strftime('%Y-%m-%dT%H:00:00Z')
+    data = {
+        "method": 'co.getbarry.api.v1.OpenApiController.getTotalKwHPrice',
+        "id": 0,
+        "jsonrpc": "2.0",
+        "params": [
+            pdl,
+            dateBegin,
+            dateEnded
+        ]
+    }
+    return requests.request("POST", url=f"{endpoint}#{tag}", headers=headers, data=json.dumps(data)).json()
+
 def getAggregatedConsumptionByPdl(pdl, dateBegin=None, dateEnded=None):
     tag = "get-aggregated-consumption-mpids"
     print(f"=> {tag}")
@@ -183,6 +203,17 @@ def run():
                 for result in gsp['result']:
                     value = result['value']
                     publish(client, f"{pdl}/currentPrice", str(value))
+
+                gtp = getTotalPrice(pdl)
+                if not "result" in gtp:
+                    # publish(client, f"{pdl}/totalPrice", str(dataGtp["error"]["data"]["message"]))
+                    print(f'ERROR => {gtp["error"]["data"]["message"]}')
+                else:
+                    for dataGtp in gtp['result']:
+                        publish(client, f"{pdl}/totalPrice", str(gtp))
+
+                quit()
+
 
             # Remove Duplicates
             allPdl = list(set(allPdl))
