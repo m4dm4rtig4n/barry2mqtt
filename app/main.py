@@ -12,8 +12,14 @@ broker = os.environ['MQTT_HOST']
 port = int(os.environ['MQTT_PORT'])
 prefix = os.environ['MQTT_PREFIX']
 client_id = os.environ['MQTT_CLIENT_ID']
-username = os.environ['MQTT_USERNAME']
-password = os.environ['MQTT_PASSWORD']
+if "MQTT_USERNAME" in os.environ:
+    username = os.environ['MQTT_USERNAME']
+else:
+    username = ""
+if "MQTT_PASSWORD" in os.environ:
+    password = os.environ['MQTT_PASSWORD']
+else:
+    password: ""
 cycle = int(os.environ['CYCLE'])
 
 # Fix min cycle
@@ -37,7 +43,8 @@ def connect_mqtt():
 
     # Set Connecting Client ID
     client = mqtt_client.Client(client_id)
-    client.username_pw_set(username, password)
+    if username != "" and password != "":
+        client.username_pw_set(username, password)
     client.on_connect = on_connect
     client.connect(broker, port)
     return client
