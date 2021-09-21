@@ -104,8 +104,47 @@ def getMeteringPoints():
     }
     return requests.request("POST", url=f"{endpoint}#{tag}", headers=headers, data=json.dumps(data)).json()
 
+def getAggregatedConsumption(dateBegin=None, dateEnded=None):
+    tag = "get-aggregated-consumption"
+    print(f"=> {tag}")
+    if dateBegin == None or dateEnded == None:
+        my_date = datetime.now()
+        dateBegin = datetime.now() + timedelta(weeks=-1)
+        dateBegin = dateBegin.strftime('%Y-%m-%dT%H:00:00Z')
+        dateEnded = my_date.strftime('%Y-%m-%dT%H:00:00Z')
+    data = {
+        "method": 'co.getbarry.api.v1.OpenApiController.getAggregatedConsumption',
+        "id": 0,
+        "jsonrpc": "2.0",
+        "params": [
+            dateBegin,
+            dateEnded
+        ]
+    }
+    return requests.request("POST", url=f"{endpoint}#{tag}", headers=headers, data=json.dumps(data)).json()
+
+def getAggregatedConsumptionByPdl(pdl, dateBegin=None, dateEnded=None):
+    tag = "get-aggregated-consumption-mpids"
+    print(f"=> {tag}")
+    if dateBegin == None or dateEnded == None:
+        my_date = datetime.now()
+        dateBegin = datetime.now() + timedelta(weeks=-1)
+        dateBegin = dateBegin.strftime('%Y-%m-%dT%H:00:00Z')
+        dateEnded = my_date.strftime('%Y-%m-%dT%H:00:00Z')
+    data = {
+        "method": 'co.getbarry.api.v1.OpenApiController.getAggregatedConsumption',
+        "id": 0,
+        "jsonrpc": "2.0",
+        "params": [
+            pdl,
+            dateBegin,
+            dateEnded
+        ]
+    }
+    return requests.request("POST", url=f"{endpoint}#{tag}", headers=headers, data=json.dumps(data)).json()
+
 def getHourlyCo2Intensity(dateBegin=None, dateEnded=None):
-    tag = "get-hourly-co2-emission"
+    tag = "get-hourly-co2-intensity"
     print(f"=> {tag}")
     if dateBegin == None or dateEnded == None:
         my_date = datetime.now()
@@ -117,6 +156,7 @@ def getHourlyCo2Intensity(dateBegin=None, dateEnded=None):
         "id": 0,
         "jsonrpc": "2.0",
         "params": [
+            "FR",
             dateBegin,
             dateEnded
         ]
@@ -131,28 +171,54 @@ def run():
 
         # GET CONTRACT INFORMATION
         gmp = getMeteringPoints()
-        for data in gmp['result']:
-            pdl = data['mpid']
-            priceCode = data['priceCode']
-            for key, value in data.items():
-                if key == "address":
-                    for address_key, address_value in value.items():
-                        publish(client, f"{pdl}/address/{address_key}", str(address_value))
-                if key != "mpid":
-                    publish(client, f"{pdl}/{key}", str(value))
-            # pprint(gmp)
+        allPdl = []
+        if not "result" in gmp:
+            print(f'ERROR => {gmp["error"]["data"]["message"]}')
+        else:
+            for data in gmp['result']:
+                pdl = data['mpid']
+                allPdl.append(pdl)
+                priceCode = data['priceCode']
+                for key, value in data.items():
+                    if key == "address":
+                        for address_key, address_value in value.items():
+                            publish(client, f"{pdl}/address/{address_key}", str(address_value))
+                    if key != "mpid":
+                        publish(client, f"{pdl}/{key}", str(value))
 
-            gsp = getPrice(priceCode)
-            for result in gsp['result']:
-                value = result['value']
-                publish(client, f"{pdl}/currentPrice", str(value))
+                gsp = getPrice(priceCode)
+                for result in gsp['result']:
+                    value = result['value']
+                    publish(client, f"{pdl}/currentPrice", str(value))
 
-            # gpd = getPriceDefinitions()
-            # publish(client, "get-price-definitions", str(gpd))
-            # pprint(gpd)
+            # Remove Duplicates
+            allPdl = list(set(allPdl))
 
-        # ghco2 = getHourlyCo2Intensity()
-        # pprint(ghco2)
+            gacbp = getAggregatedConsumptionByPdl(allPdl)
+            export = []
+            lastWeekConsumptionTotal = 0
+            if not "result" in gacbp:
+                print(f'ERROR => {gmp["error"]["data"]["message"]}')
+            else:
+                for data in gacbp['result']:
+                    pdl = data['mpid']
+                    export.append({
+                        "start": data["start"],
+                        "end": data["end"],
+                        "quantity": data["quantity"],
+                    })
+                    lastMesure = data["end"]
+                    lastWeekConsumptionTotal = lastWeekConsumptionTotal + data["quantity"]
+
+                publish(client, f"{pdl}/lastWeekConsumption", str(export))
+                publish(client, f"{pdl}/lastWeekConsumptionTotal", str(lastWeekConsumptionTotal))
+                publish(client, f"{pdl}/lastMesure", str(lastMesure))
+                # gpd = getPriceDefinitions()
+                # publish(client, "get-price-definitions", str(gpd))
+                # pprint(gpd)
+
+            # ghco2 = getHourlyCo2Intensity()
+            # pprint(ghco2)
 
         time.sleep(cycle)
 
