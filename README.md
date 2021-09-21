@@ -1,5 +1,19 @@
 # barry2mqtt
 
+Github Repository : https://github.com/m4dm4rtig4n/barry2mqtt
+
+Docker Hub Images : https://hub.docker.com/r/m4dm4rtig4n/barry2mqtt
+
+barry2mqtt use Barry Energy API to send data in your MQTT Broker.
+
+To generate ACCESS_TOKEN :
+- On mobile app
+- Go in tabs "Modules"
+- Clic to "API Barry"
+- Generate a new token
+- Give token name
+- Generate
+
 Usage :
 
 ```
