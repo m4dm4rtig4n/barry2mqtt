@@ -1,7 +1,7 @@
 FROM python:3.9.7
 
-RUN pip install paho-mqtt requests
-
 COPY ./app /app
+
+RUN pip install -r /app/requirement.txt
 
 CMD ["python", "/app/main.py"]
